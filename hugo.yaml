@@ -1,0 +1,18 @@
+baseURL: 'http://localhost'
+title: 'Some notes on stuff I work on'
+theme: 'quint'
+
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+
+params:
+  author: 'Paul Bauriegel'
+  description: 'Some notes on stuff I work on'
+
+  social:
+    - name: GitHub
+      url: 'https://github.com/paulbauriegel'
+    #- name: Twitter
+    #  url: 'https://twitter.com/yourusername'

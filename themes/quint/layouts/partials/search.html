@@ -1,0 +1,5 @@
+<form action='{{ with .GetPage "/search" }}{{.Permalink}}{{end}}' class="form-inline" id="search" method="get">
+    <label for="search-input" hidden="">Search site</label>
+    <input id="search-input" name="query" placeholder="Type here to search" type="text"/>
+    <button type="submit" value="search">Search</button>
+</form>
