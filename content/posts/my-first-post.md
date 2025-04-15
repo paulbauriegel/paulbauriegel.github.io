@@ -4,37 +4,58 @@ date: 2025-04-09T09:23:00+02:00
 tags: ['Gemini-2.5', 'Gemini']
 ---
 
-# Gemini Spatial Reasoning is amazing
-... but not good enough to be helpful yet.
+# Gemini Spatial Reasoning Is Amazing  
+...but not good enough to be helpful yet.
 
-Various Large Language Models with vision support enable you to ask questions about images usually refered to as [visual reasoning]. This allows the user to ask questions such as how many pumpkins do you see in this picture or what kind of flower do you see in this picture. This in itself is already really helpful to enable zero-shot classification without training a model. But when you need the position of that pumpkin or that flower in the picture this is not possible. Entering Spatial Resoning, which allows you to get actual bounding boxes or picture coordinates for objects through prompting.
+Various large language models with vision support enable users to ask questions about images, usually referred to as [visual reasoning]. This allows queries like: *How many pumpkins do you see in this picture?* or *What kind of flower is in this picture?* This is already very useful, as it enables zero-shot classification without needing to train a model.  
 
-Gemini 2.5 is not the first model to enable this. For the past years most vision models are build on-top of transformers architectures and allow zero-shot prompting to some degree like MobileCLIP, SigLipv2 or GroundingDino, the last even enabiling gounding box not just pure classification. In addition to that it was possible with other vision supporting LLM like GPT4o to apply something called visual grounding, but that was complicated to build and not really worth it from my perspective compared to fine-tuning a model like [RT-DERT](). The transformer arcitectures build that allow this zero-short prompting are usually the basis for the vision encoder in the LLM, e.g. Lama4 uses the MetaClip architecture, Gemma 3 uses SigLip and Qwen 2.5 uses ViT.
-Spatial Reasoning is also not something that Gemini 2.5 introduced to LLM, it was possible with Gemini 2.0 Flash before and also open source models like Qwen2.5VL have adopted it, but given that Gemini 2.5 is crushing Humanity's Last Exam and the visual reasoning benchmark MMMU I would argue that it is the best model to check the visual reasoning capabilities of LLMs.
+However, when you need to determine **where** that pumpkin or flower is in the picture, it's not possible—yet. That’s where **spatial reasoning** comes in, allowing models to return bounding boxes or coordinates for objects through prompting.
 
-If you just want to quickly play around with Spatial Reasoning in LLMs you can try Google Demo [here](https://aistudio.google.com/starter-apps/spatial), but be aware that it uses Gemini 2.0 Flash not Gemini 2.5 Pro. If you want to use Gemini 2.5 Pro and also test experimental features like semantic segmentation you will need to use Googles API directly. Google provides an excellent Jupyter Notebook [here](https://github.com/google-gemini/cookbook/blob/main/quickstarts/Spatial_understanding.ipynb) to which I will refer to for the implementation.
+Gemini 2.5 is not the first model to enable this. For years, most vision models have been built on top of transformer architectures and allow zero-shot prompting to some degree, like MobileCLIP, SigLIP v2, or GroundingDINO—the latter even enabling bounding boxes, not just classification.  
 
-## How to use Geminis Spatial Reasoning most effectively
+Additionally, visual grounding was possible with other vision-supporting LLMs like GPT-4o, but building such pipelines was complex and, in my opinion, not worth the effort compared to fine-tuning a model like [RT-DETR](https://arxiv.org/abs/2407.17140).
 
-Detect big stone, with no more than 20 items. Output a json list where each entry contains the 2D bounding box in "box_2d" and a text label in "label".
+The transformer architectures that make this possible are typically the basis of the vision encoder in LLMs. For example:  
+- LLaMA 4 uses the MetaCLIP architecture  
+- Gemma 3 uses SigLIP  
+- Qwen 2.5 uses ViT
 
-1. Use the experimental version of Gemini 2.0 Flash or 2.5 Pro
+Spatial reasoning is not something Gemini 2.5 introduced to LLMs—it was already available in Gemini 2.0 Flash and in open-source models like Qwen2.5-VL. However, given that Gemini 2.5 is dominating benchmarks like *HumanEval* and *MMMU*, I’d argue it's the best model for testing visual reasoning in LLMs today.
 
-The first observation I made was that the default model is much worse up to the point where it often doesn't get the visual grounding right at all. The prediction are ok, but ot the location. 
-The experimental version of Gemini 2.0 Flash (`gemini-2.0-flash-exp`) performs much better the default model (`gemini-2.0-flash` aka `gemini-2.0-flash-001`) and is also the version used in the WebDemo. 
-For Gemini 2.5 Pro I have only access to the experimental version (`gemini-2.5-pro-exp-03-25`). 
+If you just want to play around with spatial reasoning, try the Google demo [here](https://aistudio.google.com/starter-apps/spatial)—but note that it uses Gemini 2.0 Flash, not 2.5 Pro. If you want to use Gemini 2.5 Pro and test experimental features like semantic segmentation, you’ll need to use Google’s API directly. Google provides an excellent Jupyter Notebook [here](https://github.com/google-gemini/cookbook/blob/main/quickstarts/Spatial_understanding.ipynb), which I’ll reference for implementation tips.
 
-2. Downscale the images to 640px
+---
 
-The higher the resolution of the image is the more the performance degrades. This is most likely due to the vision encoder used in Gemini, assuming the also used SigLip like in Gemma, then SigLip has a max resolution of 512px. 
-The aistudio app downsamples the images automatically to 640px (see: https://github.com/google-gemini/starter-applets/blob/main/spatial/src/Prompt.tsx#L71) at the end I don't know what resolution will work best, but I would recommend a low one with either 640px or 512px.
-While you can send the images via API in a higher resolution it will yield in worse and especially unreliable results. The results with an image size of 640px are rather reliable.
-If you want to use higher resolution images I recommend cutting the image into patched and doing prediction on those patches, also known as SAHI (Slicing Aided Hyper Inference).
+## How to Use Gemini’s Spatial Reasoning Most Effectively
 
-The combination of gemini-2.0-flash-exp and a max resolution of 640px  should work rather reliable on photographs and data similar to the COCO object detection dataset.
-Yet, you might want to adopt a few points from Googles Jupyter Notebook.
+Example Prompt:  
+> Detect big stones, with no more than 20 items. Output a JSON list where each entry contains the 2D bounding box in `"box_2d"` and a text label in `"label"`.
 
-3. Make the Generation Guardrails less strict. The guardrails can senitive to list and numbers and code.
+TODO
+
+### 1. Use the experimental version of Gemini 2.0 Flash or 2.5 Pro
+
+One of my first observations: the default model 2.0 Flash model performs much worse. While the predictions of something being present might be okay, it often fails at the visual grounding. In other words the *bounding boxes* are wrong in the wrong place.
+
+The experimental Gemini 2.0 Flash (`gemini-2.0-flash-exp`) performs significantly better than the default model (`gemini-2.0-flash`, aka `gemini-2.0-flash-001`) and is also the version used in the web demo.  
+
+For Gemini 2.5 Pro, I only had access to the experimental version: `gemini-2.5-pro-exp-03-25` and I was disappointed, but more on that later.
+
+### 2. Downscale images to 640px
+
+Higher image resolutions lead to worse performance—likely due to the vision encoder limits. Assuming Gemini also uses SigLIP (as used in Gemma 3), that model has a max resolution of 512px.
+
+The Aistudio app downscales images to 640px automatically ([see here](https://github.com/google-gemini/starter-applets/blob/main/spatial/src/Prompt.tsx#L71)).  
+I’m not sure what the optimal resolution is, but I’d recommend sticking to 512px or 640px.
+
+Sending higher-res images via the API results in **worse grounding** and **more unreproducable** outputs. 640px works well and yields consistent results.  
+If you need higher detail, consider splitting the image into patches and doing prediction on each—this technique is known as **SAHI (Slicing Aided Hyper Inference).**
+
+The combo of `gemini-2.0-flash-exp` and 640px resolution performs the reliable in my test - at least on photos and data similar to the COCO dataset. Still, I recommend adapting some ideas from Google's notebook.
+
+### 3. Loosen the generation guardrails
+
+The default safety filters are often too sensitive to this kind of output. So you can make them less stict like this:
 
 ```python
 safety_settings = [
@@ -45,8 +66,15 @@ safety_settings = [
 ]
 ```
 
-4. Use a system prompt. There are different ones depending on your task: Pointing, 2D-Boxes, 3D-Boxes & Segmentation. 
-Overall Google says that 2D Boxes give the most reliable results. So I usually us them.
+### 4. Use a task-specific system prompt
+
+There are different system prompts for:  
+- Pointing  
+- 2D boxes  
+- 3D boxes  
+- Segmentation  
+
+Google suggests 2D boxes give the most reliable results. I usually go with that. The following is the system prompt I used for my tests.
 
 ```python
 bounding_box_system_instructions = """
@@ -56,7 +84,11 @@ If there are no relevant objects present answer with: "Nothing found"
 """
 ```
 
-5. Use a temperature that is in the lower range to make the output less noisy/creative and more analytical.
+The system prompts for the other task you can also find in Googles Notebook
+
+### 5. Use a low temperature (<= 0.5)
+
+Lower temperatures make the output less creative and more consistent. If you combine all of this you should end up with a API request like this:
 
 ```python
 response = client.models.generate_content(
@@ -69,37 +101,55 @@ response = client.models.generate_content(
     )
 )
 ```
-## Some examples - and how I got disappointed by the Spatial reasoning
 
-Let's start with the example from Google introduction video. The shadow of the fox.
+---
 
-I used the following prompt:
-- Detect the fox's shadow, with no more than 20 items. Output a json list where each entry contains the 2D bounding box in "box_2d" and a text label in "label".
+## Some Examples—and Why I Got Disappointed
+
+Let’s start with the example from [Google’s introduction video](https://www.youtube.com/watch?v=-XmoDzDMqj4): the fox’s shadow.
+
+Prompt used:
 - Detect fox shadow, with no more than 20 items. Output a json list where each entry contains the 2D bounding box in "box_2d" and a text label in "label".
 
-The thing is in order to do this you do not need gemini. Other zero-shot classification models are as good in deteting this.
+- Detect the fox's shadow, with no more than 20 items. Output a JSON list where each entry contains the 2D bounding box in "box_2d" and a text label in "label".
 
-So I moved on to something project specific - detect the trench in this picture.
-- Gemini didn't do bad
-- But the grounding of some lightweight zero-shot classification model that runs on my computer is a bit better.
+It matters a bit how you prompt it because if you ask "Detect fox shadow,..." it will not work. It only works if you ask "Detect the fox's shadow, ..." in that way the results can be a bit unpredictable.
 
-So I switched to another example of what I tought should be easy to detect. The stones under the orange cable. 
-But what I started to realize is that with this I actually choose a hard example.
-- Gemini often detected nothing sometimes something completely different, but worst of all every prediction yielded a different result, independently if pointing or 2d bounding box. This made it completely unusable.
-- GroundingDino the zero-shot model I was using wasn't detecting anything, neither was Owl-ViT another zero-shot object detection model. And while that as not good either at least it was reliable.
+Here’s the thing—you don’t need Gemini for this. Other zero-shot models perform just as well at identifying it. Above prediction was done by [GroundingDino](https://huggingface.co/IDEA-Research/grounding-dino-base) a 172M parameter model.
 
-One though was that the stones where just too small in relation to the picture, but even using patched inference didn't help. Now gemini started hallucinating and detecting stones or rocks in different spots where there where none.
-The bigger problem was that it was detecting stones where there where none, which was a bigger problem that missing a few stones. 
-It also turned out that Gemini 2.0 Flash was much better then the Gemini 2.5 Pro model I used.
-This does not mean that 2.0 is better then 2.5, but on the Spatial Understanding it seems to be trained differently.
+So I tried something more project-specific: detecting a trench.  
+- Gemini didn’t do badly.  
+- But the lightweight zero-shot model on my local machine did better visual grounding.
 
-At this point I realized that Spatial understanding is not good enough at least for my requirements, because the only way to actually solve this issue is to fine-tune a object detection model on stone.
+Next, I tried something that *should* have been easy: detecting the stones under an orange cable.  
+Turns out—it wasn’t.
 
-## Some unsatifing conclusions
+- Gemini either detected nothing or hallucinated irrelevant objects.  
+- Results were inconsistent — every prediction yielded different results
+- Switching form 2D boxes to pointing didn't help  
+- GroundingDINO and OWL-ViT also failed, but at least they were consistently failing, which is arguably better than hallucinating.
 
-Gemini Spatial Understanding is impressive. You just write a prompt and in many basic scenarios it works. No more fine-tuning of models, just some API.
-However Gemini is not the only model that allows open world vocabulary zero-shot object detection Owl-Vit/Owl2 and GroundingDino are some good alternatives that are smaller, cheaper, on-device and - I would argue - as good.
-Eventually the foundation models will outperform the smaller specialized models. 
-But that time has not come yet. If anything I'm very disappointed in Gemini 2.5 given that Gemini 2.0 feels more stable.
-And in conclusion it means at least for 2025 I still need to train computer vision models on specific datasets, which takes a lot of time.
+I thought maybe the stones were too small, but patch-based (SAHI) inference didn’t help either.  
+In fact, Gemini started hallucinating—detecting stones where there were none, which is a bigger issue than missing a few.
 
+And oddly, Gemini 2.0 Flash outperformed 2.5 Pro in this case.  
+This doesn’t necessarily mean 2.0 is better overall—but it suggests the spatial understanding component is trained differently between versions.
+
+At this point, I realized that for my needs, Geminis spatial reasoning isn’t good enough. The only real solution would be to fine-tune an object detection model for the specific class “stone”.
+
+---
+
+## Some Unsatisfying Conclusions
+
+Gemini’s spatial reasoning is impressive. You write a prompt—and it just works, for simple use-cases. No model training, just API calls.  
+
+But Gemini isn’t the only model supporting zero-shot, open-world object detection.  
+**OWL-ViT, OWL2, and GroundingDINO** are good alternatives: smaller, cheaper, and runnable on-device.  
+And I’d argue they’re just as good as Gemini for zero-shot object detection or other spatial reasoning tasks. Only on complex reasoning Gemini has the edge, eg. if you query is very complex.
+
+Eventually, foundation models will surpass smaller, fine-tuned models.  
+But that time isn’t here yet.  
+
+Frankly, I’m disappointed by Gemini 2.5—especially given how stable 2.0 feels.
+
+So for now, in 2025, I still need to train CV models on specific datasets, which is tedious—but necessary.
