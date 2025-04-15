@@ -1,0 +1,14 @@
+baseURL: 'http://localhost'
+title: 'My Modern Blog'
+theme: 'your-chosen-theme'
+
+params:
+  author: 'Paul Bauriegel'
+  description: 'A modern blog created with Hugo'
+  
+  # Social media links
+  social:
+    - name: GitHub
+      url: 'https://github.com/yourusername'
+    - name: Twitter
+      url: 'https://twitter.com/yourusername'
