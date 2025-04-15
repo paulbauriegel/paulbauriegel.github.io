@@ -1,0 +1,9 @@
+{{ $img := .Page.Resources.GetMatch (.Get "src") }}
+<figure class="figure">
+  {{ if $img }}
+    <img src="{{ $img.RelPermalink }}" alt="{{ .Get "alt" }}">
+    <figcaption>{{ .Get "caption" }}</figcaption>
+  {{ else }}
+    <div style="color:red;">Image not found: {{ .Get "src" }}</div>
+  {{ end }}
+</figure>
