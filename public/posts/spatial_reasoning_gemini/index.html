@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html><head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <link href="/images/fav/apple-touch-icon.png" rel="apple-touch-icon" sizes="180x180"/>
+    <link href="/images/fav/favicon-32x32.png" rel="icon" sizes="32x32" type="image/png"/>
+    <link href="/images/fav/favicon-16x16.png" rel="icon" sizes="16x16" type="image/png"/>
+    <link href="/images/fav/site.webmanifest" rel="manifest"/>
+    
+    <link rel="stylesheet" href="/css/custom.min.b3884c20db902a88a40b8827e437d83262e63172f3db73778b44d78917381f29.css">
+
+    <title>Gemini 2.5 Spatial Reasoning | Some notes on stuff I work on</title>
+    <link href="/css/styles.css" rel="stylesheet"/>
+    <link href="/css/custom.css" rel="stylesheet"/>
+    
+</head><body><header>
+    <div class="logo h-card">
+        <a class="u-url" href="http://localhost:1313/">
+            <img alt="Site Logo" class="site-logo u-photo" src="/images/logo.png"/>
+        </a>
+    </div>
+    <nav class="menu">
+        <ul>
+        </ul>
+    </nav>
+</header>
+
+    
+
+    <section class="hero"
+    style='background-image: url("/images/1.jpg"); background-size: cover; background-position: center; background-repeat: no-repeat; width: 100%;'
+    id="heroSection" onload="adjustTextColor(this)">
+        <div>
+            <h1 class="p-name" id="textOverlay">Gemini 2.5 Spatial Reasoning</h1>
+        </div>
+    </section>
+    <main class="post h-entry container row">
+        <div class="post">
+            <div class="post-data row">
+                <time class="dt-published" datetime="2025-04-09 09:23:00 &#43;0200 CEST">
+                    <a class="u-url" href="http://localhost:1313/posts/spatial_reasoning_gemini/">Apr 9, 2025</a>
+                </time>
+                <span rel="author" class="p-author h-card">
+                    <img class="u-photo hidden" src="" />
+                    <span class="p-name hidden" rel="me"></span>
+                </span>
+            </div>
+            <div class="e-content">
+                <h1 id="gemini-spatial-reasoning-is-amazing">Gemini Spatial Reasoning Is Amazing</h1>
+<p><strong>&hellip;but not good enough to be helpful yet.</strong></p>
+<p>Various large language models with vision support enable users to ask questions about images, usually referred to as [visual reasoning]. This allows queries like: <em>How many pumpkins do you see in this picture?</em> or <em>What kind of flower is in this picture?</em> This is already very useful, as it enables zero-shot classification without needing to train a model.</p>
+<p>However, when you need to determine <strong>where</strong> that pumpkin or flower is in the picture, it&rsquo;s not possible—yet. That’s where <strong>spatial reasoning</strong> comes in, allowing models to return bounding boxes or coordinates for objects through prompting.</p>
+<p>Gemini 2.5 is not the first model to enable this. For years, most vision models have been built on top of transformer architectures and allow zero-shot prompting to some degree, like MobileCLIP, SigLIP v2, or GroundingDINO—the latter even enabling bounding boxes, not just classification.</p>
+<p>Additionally, visual grounding was possible with other vision-supporting LLMs like GPT-4o, but building such pipelines was complex and, in my opinion, not worth the effort compared to fine-tuning a model like <a href="https://arxiv.org/abs/2407.17140">RT-DETR</a>.</p>
+<p>The transformer architectures that make this possible are typically the basis of the vision encoder in LLMs. For example:</p>
+<ul>
+<li>LLaMA 4 uses the MetaCLIP architecture</li>
+<li>Gemma 3 uses SigLIP</li>
+<li>Qwen 2.5 uses ViT</li>
+</ul>
+<p>Spatial reasoning is not something Gemini 2.5 introduced to LLMs—it was already available in Gemini 2.0 Flash and in open-source models like Qwen2.5-VL. However, given that Gemini 2.5 is dominating benchmarks like <em>HumanEval</em> and <em>MMMU</em>, I’d argue it&rsquo;s the best model for testing visual reasoning in LLMs today.</p>
+<p>If you just want to play around with spatial reasoning, try the Google demo <a href="https://aistudio.google.com/starter-apps/spatial">here</a>—but note that it uses Gemini 2.0 Flash, not 2.5 Pro. If you want to use Gemini 2.5 Pro and test experimental features like semantic segmentation, you’ll need to use Google’s API directly. Google provides an excellent Jupyter Notebook <a href="https://github.com/google-gemini/cookbook/blob/main/quickstarts/Spatial_understanding.ipynb">here</a>, which I’ll reference for implementation tips.</p>
+<hr>
+<h2 id="how-to-use-geminis-spatial-reasoning-most-effectively">How to Use Gemini’s Spatial Reasoning Most Effectively</h2>
+<p>The visual grounding of Gemini is still unstable and will yield different results when prompted differently as well as with every request there is some randomness to it. In order for it to work somewhat reliable you need to set the following things.</p>
+<ol>
+<li>A proper user prompt and ans additional system prompt that contain some of the trigger words that result in spatial json output</li>
+<li>Some time to prompt engineer you actual request to get reliable results</li>
+</ol>
+
+<figure class="figure">
+  
+    <img src="/posts/spatial_reasoning_gemini/socks_gemini.png" alt="Prediction of Gemini 2.0 Flash">
+    <figcaption>Gemini 2.0 Flash</figcaption>
+  
+</figure>
+
+<blockquote>
+<p>Detect rainbow sock, with no more than 20 items. Output a json list where each entry contains the 2D bounding box in &ldquo;box_2d&rdquo; and a text label in &ldquo;label&rdquo;.</p></blockquote>
+<p>For the image above that user prompt from Google worked and I usually use it as a template. But to actually get reliable results there are a few things I would recommend:</p>
+<h3 id="1-use-the-experimental-version-of-gemini-20-flash-or-25-pro">1. Use the experimental version of Gemini 2.0 Flash or 2.5 Pro</h3>
+<p>One of my first observations: the default model 2.0 Flash model performs much worse. While the predictions of something being present might be okay, it often fails at the visual grounding. In other words the <em>bounding boxes</em> are wrong in the wrong place.</p>
+<p>The experimental Gemini 2.0 Flash (<code>gemini-2.0-flash-exp</code>) performs significantly better than the default model (<code>gemini-2.0-flash</code>, aka <code>gemini-2.0-flash-001</code>) and is also the version used in the web demo.</p>
+<p>For Gemini 2.5 Pro, I only had access to the experimental version: <code>gemini-2.5-pro-exp-03-25</code>.</p>
+<h3 id="2-downscale-images-to-640px">2. Downscale images to 640px</h3>
+<p>Higher image resolutions lead to worse performance—likely due to the vision encoder limits. Assuming Gemini also uses SigLIP (as used in Gemma 3), that model has a max resolution of 512px.</p>
+<p>The Aistudio app downscales images to 640px automatically (<a href="https://github.com/google-gemini/starter-applets/blob/main/spatial/src/Prompt.tsx#L71">see here</a>).<br>
+I’m not sure what the optimal resolution is, but I’d recommend sticking to 512px or 640px.</p>
+<p>Sending higher-res images via the API results in <strong>worse grounding</strong> and <strong>more unreproducable</strong> outputs. 640px works well and yields consistent results.<br>
+If you need higher detail, consider splitting the image into patches and doing prediction on each—this technique is known as <strong>SAHI (Slicing Aided Hyper Inference).</strong></p>
+
+<figure class="figure">
+  
+    <img src="/posts/spatial_reasoning_gemini/upscale.png" alt="Slicing Aided Hyper Inference">
+    <figcaption>Simplified Slicing Aided Hyper Inference</figcaption>
+  
+</figure>
+
+<p>The combo of <code>gemini-2.0-flash-exp</code> and 640px resolution performs the reliable in my test - at least on photos and data similar to the COCO dataset. Still, I recommend adapting some ideas from Google&rsquo;s notebook.</p>
+<h3 id="3-loosen-the-generation-guardrails">3. Loosen the generation guardrails</h3>
+<p>The default safety filters are often too sensitive to this kind of output. So you can make them less stict like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>safety_settings <span style="color:#f92672">=</span> [
+</span></span><span style="display:flex;"><span>    genai<span style="color:#f92672">.</span>types<span style="color:#f92672">.</span>SafetySetting(
+</span></span><span style="display:flex;"><span>        category<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;HARM_CATEGORY_DANGEROUS_CONTENT&#34;</span>,
+</span></span><span style="display:flex;"><span>        threshold<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;BLOCK_ONLY_HIGH&#34;</span>,
+</span></span><span style="display:flex;"><span>    ),
+</span></span><span style="display:flex;"><span>]
+</span></span></code></pre></div><h3 id="4-use-a-task-specific-system-prompt">4. Use a task-specific system prompt</h3>
+<p>There are different system prompts for:</p>
+<ul>
+<li>Pointing</li>
+<li>2D boxes</li>
+<li>3D boxes</li>
+<li>Segmentation</li>
+</ul>
+<p>Google suggests 2D boxes give the most reliable results. I usually go with that. The following is the system prompt I used for my tests.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>bounding_box_system_instructions <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">Return bounding boxes as a JSON array with labels. Never return masks or code fencing. Limit to 25 objects.
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">If an object is present multiple times, name them according to their unique characteristic (colors, size, position, unique characteristics, etc..).
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">If there are no relevant objects present answer with: &#34;Nothing found&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">&#34;&#34;&#34;</span>
+</span></span></code></pre></div><p>If one visual ground does not work you can test a different approach. The system prompts for the other task you can also find in Googles Notebook</p>
+<h3 id="5-use-a-low-temperature--05">5. Use a low temperature (&lt;= 0.5)</h3>
+<p>Lower temperatures make the output less creative and more consistent. If you combine all of this you should end up with a API request like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>response <span style="color:#f92672">=</span> client<span style="color:#f92672">.</span>models<span style="color:#f92672">.</span>generate_content(
+</span></span><span style="display:flex;"><span>    model<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;gemini-2.0-flash-exp&#34;</span>,
+</span></span><span style="display:flex;"><span>    contents<span style="color:#f92672">=</span>[prompt, image],
+</span></span><span style="display:flex;"><span>    config <span style="color:#f92672">=</span> genai<span style="color:#f92672">.</span>types<span style="color:#f92672">.</span>GenerateContentConfig(
+</span></span><span style="display:flex;"><span>        system_instruction<span style="color:#f92672">=</span>bounding_box_system_instructions,
+</span></span><span style="display:flex;"><span>        temperature<span style="color:#f92672">=</span><span style="color:#ae81ff">0.5</span>,
+</span></span><span style="display:flex;"><span>        safety_settings<span style="color:#f92672">=</span>safety_settings,
+</span></span><span style="display:flex;"><span>    )
+</span></span><span style="display:flex;"><span>)
+</span></span></code></pre></div><hr>
+<h2 id="some-examplesand-why-i-got-disappointed">Some Examples—and Why I Got Disappointed</h2>
+<p>Let’s start with the example from <a href="https://www.youtube.com/watch?v=-XmoDzDMqj4">Google’s introduction video</a>: <strong>the fox’s shadow</strong>.</p>
+<blockquote>
+<p>Detect the fox&rsquo;s shadow, with no more than 20 items. Output a JSON list where each entry contains the 2D bounding box in &ldquo;box_2d&rdquo; and a text label in &ldquo;label&rdquo;.</p></blockquote>
+<p>It matters a bit how you prompt it because if you ask &ldquo;Detect fox shadow,&hellip;&rdquo; it will not work. It only works if you ask &ldquo;Detect the fox&rsquo;s shadow, &hellip;&rdquo; in that way the results can be a bit unpredictable.</p>
+<div class="figure-row">
+    
+  
+  <figure class="figure">
+    
+      <img src="/posts/spatial_reasoning_gemini/fox_gemini.png" alt="Prediction of Gemini 2.0 for the Prompt: the fox&#39;s shadow">
+      <figcaption>Gemini 2.0 - Prompt: the fox&#39;s shadow</figcaption>
+    
+  </figure>
+
+  
+  <figure class="figure">
+    
+      <img src="/posts/spatial_reasoning_gemini/fox_image.jpg" alt="Prediction of Gemini 2.0 for the Prompt: the fox shadow">
+      <figcaption>Gemini 2.0 - Prompt: fox shadow</figcaption>
+    
+  </figure>
+
+  
+  <figure class="figure">
+    
+      <img src="/posts/spatial_reasoning_gemini/fox_groundingdino.jpg" alt="Prediction of GroundingDino for the Prompt: fox shadow">
+      <figcaption>GroundingDino - Prompt: fox shadow</figcaption>
+    
+  </figure>
+
+
+</div>
+<p>Here’s the thing—you don’t need Gemini for this. Other zero-shot models perform just as well at identifying it. Above prediction was done by <a href="https://huggingface.co/IDEA-Research/grounding-dino-base">GroundingDino</a> a 172M parameter model.</p>
+<p>So I tried something more project-specific: <strong>Detecting a trench</strong></p>
+<p><div class="figure-row">
+    
+  
+  <figure class="figure">
+    
+      <img src="/posts/spatial_reasoning_gemini/trench_gemini.png" alt="Prediction of Gemini 2.0 for the Prompt: trench">
+      <figcaption>Gemini 2.0 - Prompt: trench</figcaption>
+    
+  </figure>
+
+  
+  <figure class="figure">
+    
+      <img src="/posts/spatial_reasoning_gemini/trench_groundingdino.jpg" alt="Prediction of GroundingDino for the Prompt: trench">
+      <figcaption>GroundingDino - Prompt: a long narrow ditch</figcaption>
+    
+  </figure>
+
+
+</div>
+<div class="figure-row">
+    
+  
+  <figure class="figure">
+    
+      <img src="/posts/spatial_reasoning_gemini/trench2_gemini.png" alt="Prediction of Gemini 2.0 for the Prompt: trench">
+      <figcaption>Gemini 2.0 - Prompt: trench</figcaption>
+    
+  </figure>
+
+  
+  <figure class="figure">
+    
+      <img src="/posts/spatial_reasoning_gemini/trench2_groundingdino.jpg" alt="Prediction of GroundingDino for the Prompt: trench">
+      <figcaption>GroundingDino - Prompt: a long narrow ditch</figcaption>
+    
+  </figure>
+
+
+</div></p>
+<p>Gemini didn’t do badly it&rsquo;s easier to prompt then lightweight zero-shot model GroundingDino. GroundingDino was not working well with just the term trench, but overall it then had slightly better visual grounding.</p>
+<p>Next, I tried something that <em>should</em> have been easy: <strong>Detecting the stones under an orange cable</strong>.
+Turns out—it wasn’t.</p>
+<p>As reference if I just ask Gemini about it, it will give me the following anwer which is correct:</p>
+<blockquote>
+<p>Yes, there is gravel and some larger stones visible in the image, particularly within the excavated trench area around the orange pipes. The soil dug out appears to be a mix of earth and rock fragments of various sizes, consistent with gravel and possibly some stones larger than typical gravel.</p></blockquote>
+<div class="figure-row">
+    
+  
+  <figure class="figure">
+    
+      <img src="/posts/spatial_reasoning_gemini/stones_annotation.png" alt="Annotation">
+      <figcaption>Annotation</figcaption>
+    
+  </figure>
+
+  
+  <figure class="figure">
+    
+      <img src="/posts/spatial_reasoning_gemini/stones_gemini20_1.png" alt="Gemini 2.0 Flash">
+      <figcaption>Gemini 2.0 Flash</figcaption>
+    
+  </figure>
+
+  
+  <figure class="figure">
+    
+      <img src="/posts/spatial_reasoning_gemini/stones_gemini25_0.png" alt="Gemini 2.5 Pro">
+      <figcaption>Gemini 2.5 Pro for stones</figcaption>
+    
+  </figure>
+
+  
+  <figure class="figure">
+    
+      <img src="/posts/spatial_reasoning_gemini/stones_gemini25_1.png" alt="Gemini 2.5 Pro">
+      <figcaption>Gemini 2.5 Pro for gravel</figcaption>
+    
+  </figure>
+
+  
+  <figure class="figure">
+    
+      <img src="/posts/spatial_reasoning_gemini/stones_gemini25_2.png" alt="Gemini 2.5 Pro">
+      <figcaption>Gemini 2.5 Pro for biggest stone</figcaption>
+    
+  </figure>
+
+  
+  <figure class="figure">
+    
+      <img src="/posts/spatial_reasoning_gemini/stones_gemini_20_pointing.png" alt="Gemini 2.0 Flash">
+      <figcaption>Gemini 2.0 Flash pointing</figcaption>
+    
+  </figure>
+
+
+</div>
+<p>Gemini either detected nothing or hallucinated irrelevant objects. The main problem where that the results where different on every run. Switching form 2D boxes to pointing didn&rsquo;t help. GroundingDINO and OWLv2 also failed, but at least they were consistently failing, which is arguably better than hallucinating. Areas that had no stones often had wrong predictions specifically with 2.0 Flash, where the mistakes where more obvious.</p>
+<div class="figure-row">
+    
+  
+  <figure class="figure">
+    
+      <img src="/posts/spatial_reasoning_gemini/notstones_gemini20.png" alt="Gemini 2.0 Flash">
+      <figcaption>Gemini 2.0 Flash SAHI</figcaption>
+    
+  </figure>
+
+  
+  <figure class="figure">
+    
+      <img src="/posts/spatial_reasoning_gemini/stones_zoom_gemini25.png" alt="Gemini 2.5 Pro">
+      <figcaption>Gemini 2.5 Pro SAHI</figcaption>
+    
+  </figure>
+
+
+</div>
+<p>I thought maybe the stones were too small, but patch-based (SAHI) inference didn’t help either.<br>
+In fact, Gemini started hallucinating. Detecting even more stones where there were none, which is a bigger issue than missing a few.</p>
+<p>At this point, I realized that for my needs, Geminis spatial reasoning isn’t good enough. The only real solution would be to fine-tune an object detection model for the specific class “stone”.</p>
+<hr>
+<h2 id="some-unsatisfying-conclusions">Some Unsatisfying Conclusions</h2>
+<p>Gemini’s spatial reasoning is impressive. You write a prompt—and it just works, for simple use-cases. No model training, just API calls.</p>
+<p>But Gemini isn’t the only model supporting zero-shot, open-world object detection.<br>
+<strong>OWL-ViT, OWL2, and GroundingDINO</strong> are good alternatives: smaller, cheaper, and runnable on-device.<br>
+And I’d argue they’re just as good as Gemini for zero-shot object detection or other spatial reasoning tasks. Only on complex reasoning Gemini has the edge, eg. if you query is very complex. I left being a bit disappointed by Gemini 2.5—especially given that the improvement over the spatial reasoning from Gemini 2.0 Flash is that minor.</p>
+<p>Eventually, foundation models will surpass smaller, fine-tuned models. But that time isn’t here yet.</p>
+<p>So for now, in 2025, I still need to train CV models on specific datasets, which is tedious—but necessary.</p>
+
+                
+                <span class="tag-container">
+                    
+                    <a class="p-category tag" href="/tags/gemini-2.5/">
+                        Gemini-2.5
+                    </a>&nbsp;
+                    
+                    <a class="p-category tag" href="/tags/gemini/">
+                        Gemini
+                    </a>&nbsp;
+                    
+                </span>
+                
+            </div>
+        </div>
+        
+    </main>
+    <script>
+        function adjustTextColor(sectionId) {
+            const section = document.getElementById(sectionId);
+            const style = window.getComputedStyle(section);
+            const imageUrl = style
+                .backgroundImage
+                .slice(4, -1)
+                .replace(/["']/g, "");
+            const image = new Image();
+            image.src = imageUrl;
+            image.onload = function () {
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = image.width;
+                canvas.height = image.height;
+                context.drawImage(image, 0, 0, image.width, image.height);
+                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                let r = 0,
+                    g = 0,
+                    b = 0;
+                for (let i = 0; i < data.length; i += 4) {
+                    r += data[i];
+                    g += data[i + 1];
+                    b += data[i + 2];
+                }
+                r /= (data.length / 4);
+                g /= (data.length / 4);
+                b /= (data.length / 4);
+                const brightness = Math.sqrt(0.299 * r * r + 0.587 * g * g + 0.114 * b * b);
+                const textColor = brightness > 128
+                    ? 'black'
+                    : 'white';
+                const shadowColor = brightness > 128
+                    ? 'rgba(255, 255, 255, 0.7)'
+                    : 'rgba(0, 0, 0, 0.7)';
+                const textOverlay = document.getElementById('textOverlay');
+                textOverlay.style.color = textColor;
+                textOverlay.style.textShadow = `0 0 5px ${shadowColor}, 0 0 10px ${shadowColor}, 0 0 20px ${shadowColor}, 0 0 40px ${shadowColor}, 0 0 80px ${shadowColor}, 0 0 90px ${shadowColor}, 0 0 100px ${shadowColor}, 0 0 150px ${shadowColor}`;
+            };
+        }
+        
+        adjustTextColor('heroSection');
+    </script>
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const observerForTableOfContentActiveState = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    const id = entry
+                        .target
+                        .getAttribute('id');
+
+                    if (entry.intersectionRatio > 0) {
+                        clearActiveStatesInTableOfContents();
+                        document
+                            .querySelector(`nav li a[href="#${id}"]`)
+                            .parentElement
+                            .classList
+                            .add('active');
+                    }
+                });
+            });
+            document
+                .querySelectorAll('h1[id],h2[id],h3[id],h4[id]')
+                .forEach((section) => {
+                    observerForTableOfContentActiveState.observe(section);
+                });
+
+        });
+
+        function clearActiveStatesInTableOfContents() {
+            document
+                .querySelectorAll('nav li')
+                .forEach((section) => {
+                    section
+                        .classList
+                        .remove('active');
+                });
+        }
+    </script>
+<footer>
+    <div class="social-media">
+        
+            <a href="https://github.com/paulbauriegel"><img alt="GitHub" src=""/></a>
+        
+    </div>
+    <div class="logo h-card">
+        <a class="u-url" href="http://localhost:1313/">
+            <img alt="Site Logo" class="site-logo u-photo" src="/images/logo.png"/>
+        </a>
+        <p>© 2025
+            Some notes on stuff I work on</p>
+    </div>
+    <nav>
+        <ul>
+        </ul>
+    </nav>
+    <script>
+    window.store = {
+    
+    
+    "http:\/\/localhost:1313\/tags\/gemini\/": {
+        
+        "title": "Gemini",
+            "tags": [],
+    "content": "", 
+    "url": "http:\/\/localhost:1313\/tags\/gemini\/"
+        },
+    
+    
+    "http:\/\/localhost:1313\/posts\/spatial_reasoning_gemini\/": {
+        
+        "title": "Gemini 2.5 Spatial Reasoning",
+            "tags": [ "Gemini-2.5",  "Gemini", ],
+    "content": "Gemini Spatial Reasoning Is Amazing \u0026hellip;but not good enough to be helpful yet.\nVarious large language models with vision support enable users to ask questions about images, usually referred to as [visual reasoning]. This allows queries like: How many pumpkins do you see in this picture? or What kind of flower is in this picture? This is already very useful, as it enables zero-shot classification without needing to train a model.\nHowever, when you need to determine where that pumpkin or flower is in the picture, it\u0026rsquo;s not possible—yet. That’s where spatial reasoning comes in, allowing models to return bounding boxes or coordinates for objects through prompting.\nGemini 2.5 is not the first model to enable this. For years, most vision models have been built on top of transformer architectures and allow zero-shot prompting to some degree, like MobileCLIP, SigLIP v2, or GroundingDINO—the latter even enabling bounding boxes, not just classification.\nAdditionally, visual grounding was possible with other vision-supporting LLMs like GPT-4o, but building such pipelines was complex and, in my opinion, not worth the effort compared to fine-tuning a model like RT-DETR.\nThe transformer architectures that make this possible are typically the basis of the vision encoder in LLMs. For example:\nLLaMA 4 uses the MetaCLIP architecture Gemma 3 uses SigLIP Qwen 2.5 uses ViT Spatial reasoning is not something Gemini 2.5 introduced to LLMs—it was already available in Gemini 2.0 Flash and in open-source models like Qwen2.5-VL. However, given that Gemini 2.5 is dominating benchmarks like HumanEval and MMMU, I’d argue it\u0026rsquo;s the best model for testing visual reasoning in LLMs today.\nIf you just want to play around with spatial reasoning, try the Google demo here—but note that it uses Gemini 2.0 Flash, not 2.5 Pro. If you want to use Gemini 2.5 Pro and test experimental features like semantic segmentation, you’ll need to use Google’s API directly. Google provides an excellent Jupyter Notebook here, which I’ll reference for implementation tips.\nHow to Use Gemini’s Spatial Reasoning Most Effectively The visual grounding of Gemini is still unstable and will yield different results when prompted differently as well as with every request there is some randomness to it. In order for it to work somewhat reliable you need to set the following things.\nA proper user prompt and ans additional system prompt that contain some of the trigger words that result in spatial json output Some time to prompt engineer you actual request to get reliable results Gemini 2.0 Flash Detect rainbow sock, with no more than 20 items. Output a json list where each entry contains the 2D bounding box in \u0026ldquo;box_2d\u0026rdquo; and a text label in \u0026ldquo;label\u0026rdquo;.\nFor the image above that user prompt from Google worked and I usually use it as a template. But to actually get reliable results there are a few things I would recommend:\n1. Use the experimental version of Gemini 2.0 Flash or 2.5 Pro One of my first observations: the default model 2.0 Flash model performs much worse. While the predictions of something being present might be okay, it often fails at the visual grounding. In other words the bounding boxes are wrong in the wrong place.\nThe experimental Gemini 2.0 Flash (gemini-2.0-flash-exp) performs significantly better than the default model (gemini-2.0-flash, aka gemini-2.0-flash-001) and is also the version used in the web demo.\nFor Gemini 2.5 Pro, I only had access to the experimental version: gemini-2.5-pro-exp-03-25.\n2. Downscale images to 640px Higher image resolutions lead to worse performance—likely due to the vision encoder limits. Assuming Gemini also uses SigLIP (as used in Gemma 3), that model has a max resolution of 512px.\nThe Aistudio app downscales images to 640px automatically (see here).\nI’m not sure what the optimal resolution is, but I’d recommend sticking to 512px or 640px.\nSending higher-res images via the API results in worse grounding and more unreproducable outputs. 640px works well and yields consistent results.\nIf you need higher detail, consider splitting the image into patches and doing prediction on each—this technique is known as SAHI (Slicing Aided Hyper Inference).\nSimplified Slicing Aided Hyper Inference The combo of gemini-2.0-flash-exp and 640px resolution performs the reliable in my test - at least on photos and data similar to the COCO dataset. Still, I recommend adapting some ideas from Google\u0026rsquo;s notebook.\n3. Loosen the generation guardrails The default safety filters are often too sensitive to this kind of output. So you can make them less stict like this:\nsafety_settings = [ genai.types.SafetySetting( category=\u0026#34;HARM_CATEGORY_DANGEROUS_CONTENT\u0026#34;, threshold=\u0026#34;BLOCK_ONLY_HIGH\u0026#34;, ), ] 4. Use a task-specific system prompt There are different system prompts for:\nPointing 2D boxes 3D boxes Segmentation Google suggests 2D boxes give the most reliable results. I usually go with that. The following is the system prompt I used for my tests.\nbounding_box_system_instructions = \u0026#34;\u0026#34;\u0026#34; Return bounding boxes as a JSON array with labels. Never return masks or code fencing. Limit to 25 objects. If an object is present multiple times, name them according to their unique characteristic (colors, size, position, unique characteristics, etc..). If there are no relevant objects present answer with: \u0026#34;Nothing found\u0026#34; \u0026#34;\u0026#34;\u0026#34; If one visual ground does not work you can test a different approach. The system prompts for the other task you can also find in Googles Notebook\n5. Use a low temperature (\u0026lt;= 0.5) Lower temperatures make the output less creative and more consistent. If you combine all of this you should end up with a API request like this:\nresponse = client.models.generate_content( model=\u0026#34;gemini-2.0-flash-exp\u0026#34;, contents=[prompt, image], config = genai.types.GenerateContentConfig( system_instruction=bounding_box_system_instructions, temperature=0.5, safety_settings=safety_settings, ) ) Some Examples—and Why I Got Disappointed Let’s start with the example from Google’s introduction video: the fox’s shadow.\nDetect the fox\u0026rsquo;s shadow, with no more than 20 items. Output a JSON list where each entry contains the 2D bounding box in \u0026ldquo;box_2d\u0026rdquo; and a text label in \u0026ldquo;label\u0026rdquo;.\nIt matters a bit how you prompt it because if you ask \u0026ldquo;Detect fox shadow,\u0026hellip;\u0026rdquo; it will not work. It only works if you ask \u0026ldquo;Detect the fox\u0026rsquo;s shadow, \u0026hellip;\u0026rdquo; in that way the results can be a bit unpredictable.\nGemini 2.0 - Prompt: the fox\u0026#39;s shadow Gemini 2.0 - Prompt: fox shadow GroundingDino - Prompt: fox shadow Here’s the thing—you don’t need Gemini for this. Other zero-shot models perform just as well at identifying it. Above prediction was done by GroundingDino a 172M parameter model.\nSo I tried something more project-specific: Detecting a trench\nGemini 2.0 - Prompt: trench GroundingDino - Prompt: a long narrow ditch Gemini 2.0 - Prompt: trench GroundingDino - Prompt: a long narrow ditch Gemini didn’t do badly it\u0026rsquo;s easier to prompt then lightweight zero-shot model GroundingDino. GroundingDino was not working well with just the term trench, but overall it then had slightly better visual grounding.\nNext, I tried something that should have been easy: Detecting the stones under an orange cable. Turns out—it wasn’t.\nAs reference if I just ask Gemini about it, it will give me the following anwer which is correct:\nYes, there is gravel and some larger stones visible in the image, particularly within the excavated trench area around the orange pipes. The soil dug out appears to be a mix of earth and rock fragments of various sizes, consistent with gravel and possibly some stones larger than typical gravel.\nAnnotation Gemini 2.0 Flash Gemini 2.5 Pro for stones Gemini 2.5 Pro for gravel Gemini 2.5 Pro for biggest stone Gemini 2.0 Flash pointing Gemini either detected nothing or hallucinated irrelevant objects. The main problem where that the results where different on every run. Switching form 2D boxes to pointing didn\u0026rsquo;t help. GroundingDINO and OWLv2 also failed, but at least they were consistently failing, which is arguably better than hallucinating. Areas that had no stones often had wrong predictions specifically with 2.0 Flash, where the mistakes where more obvious.\nGemini 2.0 Flash SAHI Gemini 2.5 Pro SAHI I thought maybe the stones were too small, but patch-based (SAHI) inference didn’t help either.\nIn fact, Gemini started hallucinating. Detecting even more stones where there were none, which is a bigger issue than missing a few.\nAt this point, I realized that for my needs, Geminis spatial reasoning isn’t good enough. The only real solution would be to fine-tune an object detection model for the specific class “stone”.\nSome Unsatisfying Conclusions Gemini’s spatial reasoning is impressive. You write a prompt—and it just works, for simple use-cases. No model training, just API calls.\nBut Gemini isn’t the only model supporting zero-shot, open-world object detection.\nOWL-ViT, OWL2, and GroundingDINO are good alternatives: smaller, cheaper, and runnable on-device.\nAnd I’d argue they’re just as good as Gemini for zero-shot object detection or other spatial reasoning tasks. Only on complex reasoning Gemini has the edge, eg. if you query is very complex. I left being a bit disappointed by Gemini 2.5—especially given that the improvement over the spatial reasoning from Gemini 2.0 Flash is that minor.\nEventually, foundation models will surpass smaller, fine-tuned models. But that time isn’t here yet.\nSo for now, in 2025, I still need to train CV models on specific datasets, which is tedious—but necessary.\n", 
+    "url": "http:\/\/localhost:1313\/posts\/spatial_reasoning_gemini\/"
+        },
+    
+    
+    "http:\/\/localhost:1313\/tags\/gemini-2.5\/": {
+        
+        "title": "Gemini-2.5",
+            "tags": [],
+    "content": "", 
+    "url": "http:\/\/localhost:1313\/tags\/gemini-2.5\/"
+        },
+    
+    
+    "http:\/\/localhost:1313\/posts\/": {
+        
+        "title": "Posts",
+            "tags": [],
+    "content": "", 
+    "url": "http:\/\/localhost:1313\/posts\/"
+        },
+    
+    
+    "http:\/\/localhost:1313\/": {
+        
+        "title": "Some notes on stuff I work on",
+            "tags": [],
+    "content": "", 
+    "url": "http:\/\/localhost:1313\/"
+        },
+    
+    
+    "http:\/\/localhost:1313\/tags\/": {
+        
+        "title": "Tags",
+            "tags": [],
+    "content": "", 
+    "url": "http:\/\/localhost:1313\/tags\/"
+        },
+    
+    
+    "http:\/\/localhost:1313\/tags\/android\/": {
+        
+        "title": "Android",
+            "tags": [],
+    "content": "", 
+    "url": "http:\/\/localhost:1313\/tags\/android\/"
+        },
+    
+    
+    "http:\/\/localhost:1313\/posts\/android_open_source\/": {
+        
+        "title": "Googles Android should not be called Open Source",
+            "tags": [ "Android", ],
+    "content": "Why Android is no longer better than iOS Some years ago I used to be a passionate Android fan. I used to tell people, that phones running Android are a way better choice than iPhones. Mostly for a very simple reason: Android was Open Software and a very flexible system in general. iOS never has been. Now I think different.\nWhy does it matter to have an open-source system I generally prefer to work with open software for multiple reasons, most of them are related to the flexibility that you have as a developer. As a user of open-source software, you are indirectly profiting from that flexibility. Open-source projects usually more customizable and give you more control over the system itself. Especially when it comes to data privacy. Data privacy does concern me in specific because I work a lot on data-driven projects. Unfortunately, that also triggers my imagination on how companies can misuse the data we are offering them in exchange to use their services. They probably do not, but once the data is transmitted, one cannot influence how the data is used. Especially with machine learning, there are som many ways to use the data for unethical purposes. By using an open-source Android I can at least see how my apps communicate and can influence what data they exchange.\nHowever, it has become increasingly difficult to keep using Android without giving up control to Google\u0026rsquo;s proprietary services. Up to a point where open source Android does not provide the functionally to run the apps I want to use.\nA quick Android history review I started my Android journey in 2012 with an Xperia sola running on Gingerbread and two phones later I\u0026rsquo;m using now Android Pie. With each Android version, Google has integrated its proprietary code deeper and deeper into the system. And over the years it has become more and more uncomfortable to use Android without Google. Some apps are even unusable or non-functional because of their dependencies on the Google framework. Googles strategy behind its development of Android can be described by a concept known as Embrace, extend, extinguish. Let me break down what Google did with Android:\nEmbrace - Google acquired Android in 2005 to strengthen its mobile portfolio and get involved in the mobile operating system market. First, the OS was supposed to become similar to the Blackberry OS and after the appearance of the iPhone, Google decided to shift focus more towards touchscreens as well. Google then released Android as Open Source under the Android Open Source Project (AOSP) in 2007. But in the same instant, they also founded the Open Handset Alliance (OHA) which forbids their members to produce devices for competing forms of Android. In a nutshell, Google did develop a new open standard that allowed them and their partners to compete with Symbian, Blackberry and Apple. Back then Android used to be quite free software.\nExtend - At some point in 2011 the majority of devices got shipped with Android. So in 2012 Google introduced their first version of their proprietary Google Play Services. And from that point onwards Google began to implement features outside of the open-source project and building Android dependencies against their services. Making it harder to use solely the open-source parts of Android. The tricky thing about the strategy is that all the fancy stuff comes only with Googles proprietary Services. By now the ordinary user of an Android phone has a system that is dominated by proprietary Google apps and services. That includes even \u0026ldquo;system\u0026rdquo; apps like the Dialer, that used to part of the open-source system, and are now just another proprietary Google app. Some new software features like child protection (Google Family) even require to store your activity timeline on Google servers to work. Following the evolution of Android, Google\u0026rsquo;s manufacturing partners became more and more depended on Android.\nExtinguish - Today Google\u0026rsquo;s Android has a market share of 76% [Link]. Customers love the fancy Google features like voice assistants, and even if they do not, they still cannot use their apps without proprietary the Google framework. Manufacturers have no choice than other than paying license fees to Google for those services. An open alternative to Android does not exist and the OHA contract conditions forbid its members to develop forks of Android. Meanwhile, Google makes some features of solely available for their own Pixel devices, excluding other manufactures. And Trumps Huawei ban showed very recently how dependent hardware manufactures are to Google by now.\nGoogle will continue this strategy as the newest beta of Android Q shows, where e.g. Google Translate is integrated deeper into the Android system. Apart from the underlying ASOP core, Android has become is as proprietary as iOS.\nBut you can use open source only Android, right? Well, you can yes, but \u0026hellip;. you have to be a geek and you have to make quite a lot of sacrifices. In other words, you might no be able to use your phone in the way you used to use it. A good example are messenger services like WhatsApp, Telegram or Signal. All of these require the Google Cloud Messaging (GCM). The idea behind GCM is quite clever. Instead of multiple apps pulling for new updates, the Play service component informs the app when a package waits and only then the app pulls for data. Especially for messenger that have small update intervals, that saves battery. But not only messenger apps use GCM, almost any app that shows notifications uses this feature. GCM is only one of many APIs that are used by apps for logins, maps and so on. And especially those other features have been my biggest big pain points since I\u0026rsquo;m running a fully open-source version of Android for the last months.\nGetting an Android free from proprietary code involves two steps in general. Primarily you need to replace your stock ROM - meaning your manufacturers version of Android - with some AOSP fork like LineageOS or OmniRom. It sounds more complicated than it is. Forums like XDA-Developers provide great step-for-step guides. The only negative implications are a possible break of your warranty and minor bugs within the system. The ROMs for common devices do have only a few or no bugs at all. But if your device is not too common, there might be no stable open-source fork containing all the necessary driver for your phone\u0026rsquo;s hardware. Then there is no open-source Android for you at all.\nAs the second step is about resolving Androids dependencies to the Google Mobile Services. If you want to go fully open source the only possible alternative to the propriety GApps is the incredible microG project. microG implements some of the GMS API\u0026rsquo;s - most importantly the GCM interface. However the only completely stable functionality is the cloud messaging, other APIs like maps or login are still incomplete and may not works for all apps. If you depend on certain apps, that require Google APIs that is a crucial problem. I had two apps I\u0026rsquo;m now using on my work phone because they did not run without certain APIs currently included in microG and some other apps do lack some functionalities. Without a second phone, I would certainly switch to GApps in an instant.\nWhy it does not probably matter if you use iOS or Android anymore Android vs iOS - I used to have a strong opinion on that - now I don\u0026rsquo;t really care anymore. I personally cannot use the current open-source Android as my daily driver, without installing proprietary Google software. So in terms of data privacy, the OS doesn\u0026rsquo;t make a difference to me anymore. Google and Apple might give you options to opt-out of their data collection, but to which extend that decision is respected is questionable and to use fancy features like the inbuilt voice assistants you have to give up privacy anyway. The only reason I still prefer Android over iOS are the magical possibilities that come with the Magisk project. But that\u0026rsquo;s because I still love to play with the operating system. That\u0026rsquo;s something most people probably don\u0026rsquo;t care about at all.\nWhat most people will see if they use iOS or Android is a proprietary system anyway.\n", 
+    "url": "http:\/\/localhost:1313\/posts\/android_open_source\/"
+        },
+    
+    
+    "http:\/\/localhost:1313\/categories\/": {
+        
+        "title": "Categories",
+            "tags": [],
+    "content": "", 
+    "url": "http:\/\/localhost:1313\/categories\/"
+        },
+    
+    }
+</script>
+
+<script src="/js/lunr.min.js"></script>
+<script src="/js/search.js"></script>
+
+</footer></body>
+</html>
