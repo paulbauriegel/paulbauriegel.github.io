@@ -1,6 +1,7 @@
 baseURL: 'https://paulbauriegel.github.io/'
 title: 'Some notes on stuff I work on'
 theme: 'quint'
+contact: ''
 
 markup:
   goldmark:

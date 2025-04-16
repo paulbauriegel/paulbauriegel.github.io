@@ -3,7 +3,7 @@ title: 'Googles Android should not be called Open Source'
 date: 2019-02-24T09:23:00+02:00
 tags: ['Android']
 summary: "I used to be a passionate Android fan. I used to tell people that phones running Android were a much better choice than iPhones. Now, I think differently."
-featured_image: https://images.unsplash.com/photo-1514417034809-c7b296354f07?ixlib=rb-1.2.1&q=80&fm=jpg&crop=entropy&cs=tinysrgb&w=1080&fit=max&ixid=eyJhcHBfaWQiOjExNzczfQ
+_image: https://images.unsplash.com/photo-1514417034809-c7b296354f07?ixlib=rb-1.2.1&q=80&fm=jpg&crop=entropy&cs=tinysrgb&w=1080&fit=max&ixid=eyJhcHBfaWQiOjExNzczfQ
 ---
 
 # Why Android is no longer better than iOS

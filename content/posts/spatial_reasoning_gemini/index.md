@@ -2,7 +2,7 @@
 title: 'Gemini 2.5 Spatial Reasoning'
 date: 2025-04-09T09:23:00+02:00
 tags: ['Gemini-2.5', 'Gemini']
-summary: "Testing the limits of Gemini 2.5 Spatial Reasoning capabilities on the example of fiber construction trenches"
+summary: "Exploring Gemini 2.5's spatial reasoning abilities on trench scan data from fiber construction projects. While promising, Gemini 2.5 still struggles with consistent and accurate visual grounding—limiting its practical usefulness."
 ---
 
 # Gemini Spatial Reasoning Is Amazing  
@@ -29,10 +29,10 @@ If you just want to play around with spatial reasoning, try the Google demo [her
 
 ## How to Use Gemini’s Spatial Reasoning Most Effectively
 
-The visual grounding of Gemini is still unstable and will yield different results when prompted differently as well as with every request there is some randomness to it. In order for it to work somewhat reliable you need to set the following things.
+Gemini’s visual grounding is still unstable and yields different results depending on prompt and input as well as other factors like generation temperature. To make it work somewhat reliably, you need to set the following things:
 
-1. A proper user prompt and ans additional system prompt that contain some of the trigger words that result in spatial json output
-2. Some time to prompt engineer you actual request to get reliable results
+1. A proper user prompt and an additional system prompt that include trigger words which lead to the JSON output with the spatial information
+2. Some time to prompt engineer your actual prompts phrasing to get reliable results.
 
 
 {{< figure src="socks_gemini.png" alt="Prediction of Gemini 2.0 Flash" caption="Gemini 2.0 Flash" >}}
@@ -62,11 +62,11 @@ If you need higher detail, consider splitting the image into patches and doing p
 {{< figure src="upscale.png" alt="Slicing Aided Hyper Inference" caption="Simplified Slicing Aided Hyper Inference" >}}
 
 
-The combo of `gemini-2.0-flash-exp` and 640px resolution performs the reliable in my test - at least on photos and data similar to the COCO dataset. Still, I recommend adapting some ideas from Google's notebook.
+The combo of `gemini-2.0-flash-exp` and 640px resolution performs the reliable performs the most reliably in my tests - at least on photos and data similar to the COCO dataset. But there are some other ideas from Google's notebook you might want to adopt as well:
 
 ### 3. Loosen the generation guardrails
 
-The default safety filters are often too sensitive to this kind of output. So you can make them less stict like this:
+The default safety filters are often too sensitive to this kind of output. So you can make them less strict like this:
 
 ```python
 safety_settings = [
@@ -97,9 +97,11 @@ If there are no relevant objects present answer with: "Nothing found"
 
 If one visual ground does not work you can test a different approach. The system prompts for the other task you can also find in Googles Notebook
 
-### 5. Use a low temperature (<= 0.5)
+### 5. Use a low temperature (<= 0.5) and a seed
 
-Lower temperatures make the output less creative and more consistent. If you combine all of this you should end up with a API request like this:
+Lower temperatures make the output less creative and more consistent. You can make the results for the same input also deterministic by setting a seed, but that does not change the fact that one changed comma in the prompt can result in a completely different result.
+
+If you combine all of this you should end up with a API request like this:
 
 ```python
 response = client.models.generate_content(
@@ -154,13 +156,14 @@ As reference if I just ask Gemini about it, it will give me the following anwer 
 {{< figurerow >}}
   {{< figure src="stones_annotation.png" alt="Annotation" caption="Annotation" >}}
   {{< figure src="stones_gemini20_1.png" alt="Gemini 2.0 Flash" caption="Gemini 2.0 Flash" >}}
+  {{< figure src="stones_gemini_20_pointing.png" alt="Gemini 2.0 Flash" caption="Gemini 2.0 Flash pointing" >}}
   {{< figure src="stones_gemini25_0.png" alt="Gemini 2.5 Pro" caption="Gemini 2.5 Pro for stones" >}}
   {{< figure src="stones_gemini25_1.png" alt="Gemini 2.5 Pro" caption="Gemini 2.5 Pro for gravel" >}}
   {{< figure src="stones_gemini25_2.png" alt="Gemini 2.5 Pro" caption="Gemini 2.5 Pro for biggest stone" >}}
-  {{< figure src="stones_gemini_20_pointing.png" alt="Gemini 2.0 Flash" caption="Gemini 2.0 Flash pointing" >}}
 {{</figurerow >}}
 
-Gemini either detected nothing or hallucinated irrelevant objects. The main problem where that the results where different on every run. Switching form 2D boxes to pointing didn't help. GroundingDINO and OWLv2 also failed, but at least they were consistently failing, which is arguably better than hallucinating. Areas that had no stones often had wrong predictions specifically with 2.0 Flash, where the mistakes where more obvious.
+Gemini 2.0 Flash either detected nothing or hallucinated irrelevant objects. The main problem was that the results were different on every run. Switching from 2D boxes to pointing didn't help. Areas that had no stones often had wrong predictions specifically with 2.0 Flash, where the mistakes were more obvious. Gemini 2.5 Pro was better but not accurate enough to be helpful, as the bounding boxes did just cover the big stones as expected by the prompting. Similar to Gemini 2.0 it was also predicting stones where there where no stone, even though it was less frequent.
+GroundingDINO and OWLv2 also failed, but at least they were consistently failing, which is arguably better than hallucinating.
 
 {{< figurerow >}}
   {{< figure src="notstones_gemini20.png" alt="Gemini 2.0 Flash" caption="Gemini 2.0 Flash SAHI" >}}
@@ -168,8 +171,8 @@ Gemini either detected nothing or hallucinated irrelevant objects. The main prob
 {{</figurerow >}}
 
 
-I thought maybe the stones were too small, but patch-based (SAHI) inference didn’t help either.  
-In fact, Gemini started hallucinating. Detecting even more stones where there were none, which is a bigger issue than missing a few.
+I thought maybe the stones were too small to create proper bounding boxes, but patch-based (SAHI) inference didn’t help either.  
+In fact, Gemini started hallucinating more. Detecting even more stones where there were none, which is a bigger issue than missing a few.
 
 
 At this point, I realized that for my needs, Geminis spatial reasoning isn’t good enough. The only real solution would be to fine-tune an object detection model for the specific class “stone”.
@@ -182,7 +185,7 @@ Gemini’s spatial reasoning is impressive. You write a prompt—and it just wor
 
 But Gemini isn’t the only model supporting zero-shot, open-world object detection.  
 **OWL-ViT, OWL2, and GroundingDINO** are good alternatives: smaller, cheaper, and runnable on-device.  
-And I’d argue they’re just as good as Gemini for zero-shot object detection or other spatial reasoning tasks. Only on complex reasoning Gemini has the edge, eg. if you query is very complex. I left being a bit disappointed by Gemini 2.5—especially given that the improvement over the spatial reasoning from Gemini 2.0 Flash is that minor.
+And I’d argue they’re just as good as Gemini for zero-shot object detection or other spatial reasoning tasks. Only on complex reasoning Gemini has the edge, eg. if your query is very complex. I left being a bit disappointed by Gemini 2.5—especially given that the improvement over the spatial reasoning from Gemini 2.0 Flash is that minor.
 
 Eventually, foundation models will surpass smaller, fine-tuned models. But that time isn’t here yet.  
 
