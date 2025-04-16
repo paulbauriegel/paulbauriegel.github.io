@@ -8,9 +8,9 @@ summary: "Exploring Gemini 2.5's spatial reasoning abilities on trench scan data
 # Gemini Spatial Reasoning Is Amazing  
 **...but not good enough to be helpful yet.**
 
-Various large language models with vision support enable users to ask questions about images, usually referred to as [visual reasoning]. This allows queries like: *How many pumpkins do you see in this picture?* or *What kind of flower is in this picture?* This is already very useful, as it enables zero-shot classification without needing to train a model.  
+Various large language models with vision support enable users to ask questions about images, usually referred to as [visual understanding or visual question answering](https://cs231n.stanford.edu/2024/papers/vision-is-language-visual-understanding-via-llm.pdf). This allows queries like: *How many pumpkins do you see in this picture?* or *What kind of flower is in this picture?* This is already very useful, as it enables zero-shot classification without needing to train a model.  
 
-However, when you need to determine **where** that pumpkin or flower is in the picture, it's not possible—yet. That’s where **spatial reasoning** comes in, allowing models to return bounding boxes or coordinates for objects through prompting.
+However, when you need to determine **where** that pumpkin or flower is in the picture - that’s where **spatial reasoning** comes in, allowing models to return bounding boxes or coordinates for objects through prompting.
 
 Gemini 2.5 is not the first model to enable this. For years, most vision models have been built on top of transformer architectures and allow zero-shot prompting to some degree, like MobileCLIP, SigLIP v2, or GroundingDINO—the latter even enabling bounding boxes, not just classification.  
 
